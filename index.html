@@ -1,0 +1,1459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIPulse — Live AI Intelligence Network</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --bg:    #07070d;
+  --bg2:   #0e0e18;
+  --bg3:   #141420;
+  --card:  #191926;
+  --card2: #1e1e2e;
+  --b:     rgba(255,255,255,0.06);
+  --b2:    rgba(255,255,255,0.11);
+  --b3:    rgba(255,255,255,0.18);
+  --text:  #eeeef5;
+  --muted: #7878a0;
+  --dim:   #3a3a55;
+  --success: #22d3a0;
+  --warn:    #fbbf24;
+  --danger:  #f87171;
+  --info:    #60a5fa;
+  --mono: 'JetBrains Mono', monospace;
+  --display: 'Syne', sans-serif;
+  --body: 'Instrument Sans', sans-serif;
+  --r: 14px;
+  --r2: 10px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 14px;
+  min-height: 100vh;
+  overflow-x: hidden;
+  cursor: default;
+}
+
+/* ── GRAIN OVERLAY ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+  opacity: .5;
+}
+
+/* ── AUTH ── */
+#auth-screen {
+  position: fixed; inset: 0; z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg);
+  background-image: radial-gradient(ellipse 60% 50% at 50% 0%, rgba(96,165,250,.08) 0%, transparent 70%);
+}
+.auth-box {
+  width: 100%; max-width: 440px;
+  padding: 2.5rem;
+  background: var(--card);
+  border: 1px solid var(--b2);
+  border-radius: 20px;
+  position: relative;
+  z-index: 1;
+}
+.auth-logo {
+  font-family: var(--display);
+  font-size: 28px; font-weight: 800;
+  letter-spacing: -1px;
+  margin-bottom: 4px;
+}
+.auth-logo .pulse-dot {
+  display: inline-block;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+  margin-left: 3px;
+  vertical-align: middle;
+  animation: breathe 2s ease-in-out infinite;
+}
+@keyframes breathe { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:.4;transform:scale(.7);} }
+.auth-sub { font-size: 13px; color: var(--muted); margin-bottom: 1.5rem; }
+.auth-tabs { display: flex; gap: 4px; background: var(--bg3); border-radius: 10px; padding: 4px; margin-bottom: 1.5rem; }
+.auth-tab { flex: 1; padding: 9px; text-align: center; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; color: var(--muted); border: none; background: none; font-family: var(--body); transition: all .2s; }
+.auth-tab.active { background: var(--card2); color: var(--text); }
+.field { margin-bottom: 14px; }
+.field label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 6px; letter-spacing: .06em; text-transform: uppercase; font-family: var(--mono); }
+.field input { width: 100%; padding: 11px 14px; background: var(--bg3); border: 1px solid var(--b2); border-radius: 10px; color: var(--text); font-family: var(--body); font-size: 14px; outline: none; transition: border .2s; }
+.field input:focus { border-color: var(--info); }
+.btn-primary { width: 100%; padding: 12px; background: var(--info); border: none; border-radius: 10px; color: #fff; font-family: var(--display); font-size: 14px; font-weight: 700; cursor: pointer; transition: all .2s; margin-top: 4px; letter-spacing: .02em; }
+.btn-primary:hover { opacity: .88; transform: translateY(-1px); }
+.btn-demo { width: 100%; padding: 10px; background: none; border: 1px solid var(--b2); border-radius: 10px; color: var(--muted); font-family: var(--body); font-size: 13px; cursor: pointer; transition: all .2s; margin-top: 8px; }
+.btn-demo:hover { border-color: var(--success); color: var(--success); }
+.auth-err { font-size: 12px; margin-top: 8px; min-height: 16px; color: var(--danger); font-family: var(--mono); }
+
+/* ── APP SHELL ── */
+#app { display: none; min-height: 100vh; position: relative; z-index: 1; }
+
+.topbar {
+  height: 56px; display: flex; align-items: center; justify-content: space-between;
+  padding: 0 1.75rem;
+  border-bottom: 1px solid var(--b);
+  background: rgba(7,7,13,.85);
+  backdrop-filter: blur(12px);
+  position: sticky; top: 0; z-index: 100;
+}
+.logo { font-family: var(--display); font-size: 18px; font-weight: 800; letter-spacing: -0.5px; display: flex; align-items: center; gap: 8px; }
+.logo-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); animation: breathe 2s ease-in-out infinite; }
+.topbar-center { display: flex; align-items: center; gap: 6px; }
+.nav-tab { padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 500; color: var(--muted); cursor: pointer; border: none; background: none; font-family: var(--body); transition: all .2s; }
+.nav-tab:hover { color: var(--text); background: var(--bg3); }
+.nav-tab.active { color: var(--text); background: var(--bg3); }
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+.live-pill { display: flex; align-items: center; gap: 5px; font-family: var(--mono); font-size: 10px; color: var(--success); background: rgba(34,211,160,.08); border: 1px solid rgba(34,211,160,.2); padding: 4px 10px; border-radius: 20px; }
+.live-pulse { width: 5px; height: 5px; border-radius: 50%; background: var(--success); animation: breathe 1.4s ease-in-out infinite; }
+.user-pill { display: flex; align-items: center; gap: 8px; padding: 5px 12px 5px 5px; background: var(--bg3); border: 1px solid var(--b2); border-radius: 24px; cursor: pointer; transition: border-color .2s; }
+.user-pill:hover { border-color: var(--b3); }
+.avatar { width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(135deg, var(--info), var(--success)); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #fff; flex-shrink: 0; font-family: var(--display); }
+.user-name { font-size: 12px; font-weight: 500; }
+.logout-btn { background: none; border: 1px solid var(--b2); border-radius: 8px; color: var(--muted); font-size: 11px; padding: 5px 10px; cursor: pointer; font-family: var(--body); transition: all .2s; }
+.logout-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+/* ── PAGES ── */
+.page { display: none; }
+.page.active { display: block; }
+.main { padding: 1.5rem 1.75rem; max-width: 1500px; margin: 0 auto; }
+
+/* ── HERO TICKER ── */
+.ticker-wrap { display: flex; align-items: center; gap: 12px; background: var(--bg2); border: 1px solid var(--b); border-radius: 10px; padding: 9px 16px; margin-bottom: 1.25rem; overflow: hidden; }
+.ticker-tag { font-family: var(--mono); font-size: 9px; color: var(--info); letter-spacing: .1em; background: rgba(96,165,250,.1); padding: 3px 8px; border-radius: 4px; white-space: nowrap; flex-shrink: 0; }
+.ticker-scroll { display: flex; gap: 2.5rem; animation: scrolltick 40s linear infinite; white-space: nowrap; }
+@keyframes scrolltick { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+.tick-item { font-family: var(--mono); font-size: 11px; display: flex; align-items: center; gap: 6px; }
+.t-up { color: var(--success); }
+.t-dn { color: var(--danger); }
+.t-neu { color: var(--muted); }
+
+/* ── WINNER BAR ── */
+.winner-bar {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--card);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  padding: 14px 18px;
+  margin-bottom: 1.25rem;
+  position: relative;
+  overflow: hidden;
+}
+.winner-bar::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--success);
+  border-radius: 3px 0 0 3px;
+}
+.winner-crown { font-size: 22px; flex-shrink: 0; }
+.winner-info { flex: 1; }
+.winner-title { font-family: var(--display); font-size: 15px; font-weight: 700; }
+.winner-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.winner-ms { font-family: var(--mono); font-size: 20px; font-weight: 700; color: var(--success); }
+
+/* ── STATS ROW ── */
+.stats-row { display: grid; grid-template-columns: repeat(5,1fr); gap: 10px; margin-bottom: 1.25rem; }
+@media(max-width:900px){ .stats-row { grid-template-columns: repeat(3,1fr); } }
+.stat-card { background: var(--card); border: 1px solid var(--b); border-radius: var(--r); padding: 14px; }
+.stat-label { font-family: var(--mono); font-size: 9px; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 8px; }
+.stat-val { font-family: var(--display); font-size: 24px; font-weight: 800; }
+.stat-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+/* ── AI GRID ── */
+.ai-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin-bottom: 1.25rem; }
+.ai-card {
+  background: var(--card);
+  border: 1px solid var(--b);
+  border-radius: var(--r);
+  padding: 14px;
+  cursor: pointer;
+  transition: border-color .25s, transform .2s;
+  position: relative;
+  overflow: hidden;
+}
+.ai-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--accent, #60a5fa) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity .3s;
+  pointer-events: none;
+}
+.ai-card:hover { transform: translateY(-2px); border-color: var(--b2); }
+.ai-card:hover::after { opacity: .04; }
+.ai-card.best { border-color: var(--accent, #22d3a0) !important; }
+.ai-card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.ai-id { display: flex; align-items: center; gap: 9px; }
+.ai-icon { width: 32px; height: 32px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; font-family: var(--display); flex-shrink: 0; }
+.ai-name-block .ai-name { font-size: 14px; font-weight: 600; font-family: var(--display); }
+.ai-name-block .ai-maker { font-size: 10px; color: var(--muted); margin-top: 1px; }
+.s-badge { font-size: 9px; padding: 3px 8px; border-radius: 10px; font-family: var(--mono); font-weight: 500; }
+.sf { background: rgba(34,211,160,.12); color: var(--success); border: 1px solid rgba(34,211,160,.25); }
+.sm { background: rgba(251,191,36,.12); color: var(--warn); border: 1px solid rgba(251,191,36,.25); }
+.ss { background: rgba(248,113,113,.12); color: var(--danger); border: 1px solid rgba(248,113,113,.25); }
+.ai-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 11px; }
+.ai-metric { background: var(--bg3); border-radius: 8px; padding: 8px 10px; }
+.ai-metric-label { font-family: var(--mono); font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 3px; }
+.ai-metric-val { font-family: var(--mono); font-size: 16px; font-weight: 700; }
+.ai-quality { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+.quality-stars { display: flex; gap: 2px; }
+.qstar { width: 10px; height: 10px; border-radius: 2px; }
+.quality-label { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+.lat-track { height: 4px; background: var(--bg3); border-radius: 2px; overflow: hidden; margin-bottom: 4px; }
+.lat-fill { height: 100%; border-radius: 2px; transition: width 1.2s ease; }
+.lat-nums { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 9px; color: var(--muted); }
+.percentiles { display: flex; gap: 6px; margin-top: 8px; }
+.pct-pill { font-family: var(--mono); font-size: 9px; padding: 2px 7px; border-radius: 6px; background: var(--bg3); color: var(--muted); border: 1px solid var(--b); }
+
+/* ── SECTION ── */
+.section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.section-title { font-family: var(--display); font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.section-meta { font-family: var(--mono); font-size: 10px; color: var(--dim); }
+
+/* ── TWO COL ── */
+.two-col { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; margin-bottom: 1.25rem; }
+@media(max-width:900px){ .two-col { grid-template-columns: 1fr; } }
+.three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 1.25rem; }
+@media(max-width:900px){ .three-col { grid-template-columns: 1fr; } }
+
+/* ── CARDS ── */
+.panel { background: var(--card); border: 1px solid var(--b); border-radius: var(--r); padding: 16px; }
+.panel-title { font-family: var(--display); font-size: 13px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; }
+
+/* ── LEADERBOARD ── */
+.lb-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--b); }
+.lb-row:last-child { border-bottom: none; }
+.lb-rank { font-family: var(--mono); font-size: 11px; color: var(--dim); width: 20px; flex-shrink: 0; }
+.lb-rank.r1 { color: #fbbf24; }
+.lb-rank.r2 { color: #94a3b8; }
+.lb-rank.r3 { color: #cd7f32; }
+.lb-name { flex: 1; font-size: 13px; font-weight: 600; font-family: var(--display); }
+.lb-bar-wrap { width: 70px; height: 3px; background: var(--bg3); border-radius: 2px; }
+.lb-bar-fill { height: 100%; border-radius: 2px; transition: width .8s ease; }
+.lb-val { font-family: var(--mono); font-size: 10px; color: var(--muted); min-width: 45px; text-align: right; }
+.lb-streak { font-size: 10px; color: var(--warn); font-family: var(--mono); }
+
+/* ── QUALITY SCORE ── */
+.quality-card { background: var(--card); border: 1px solid var(--b); border-radius: var(--r); padding: 16px; margin-bottom: 1.25rem; }
+.quality-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; margin-top: 12px; }
+.qc-item { background: var(--bg3); border-radius: 10px; padding: 12px; }
+.qc-ai { font-size: 12px; font-weight: 600; font-family: var(--display); margin-bottom: 6px; }
+.qc-stars { display: flex; gap: 3px; margin-bottom: 5px; }
+.qc-star { font-size: 12px; }
+.qc-score { font-family: var(--mono); font-size: 18px; font-weight: 700; }
+.qc-votes { font-size: 10px; color: var(--muted); margin-top: 2px; }
+.rate-btn { padding: 4px 10px; background: none; border: 1px solid var(--b2); border-radius: 6px; color: var(--muted); font-size: 11px; font-family: var(--body); cursor: pointer; margin-top: 6px; transition: all .2s; }
+.rate-btn:hover { border-color: var(--info); color: var(--info); }
+
+/* ── HEATMAP ── */
+.hm-outer { display: flex; }
+.hm-days { display: flex; flex-direction: column; gap: 2px; margin-right: 6px; }
+.hm-day { font-family: var(--mono); font-size: 9px; color: var(--dim); height: 13px; display: flex; align-items: center; }
+.hm-grid { display: grid; grid-template-columns: repeat(24, 1fr); gap: 2px; flex: 1; }
+.hm-cell { height: 13px; border-radius: 2px; cursor: default; transition: opacity .15s; }
+.hm-cell:hover { opacity: .7; }
+.hm-hours { display: flex; justify-content: space-between; margin-top: 4px; }
+.hm-hour { font-family: var(--mono); font-size: 8px; color: var(--dim); }
+
+/* ── WORK WINDOW ── */
+.ww-rec { background: rgba(96,165,250,.08); border: 1px solid rgba(96,165,250,.2); border-radius: 10px; padding: 12px 14px; display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.ww-icon { font-size: 20px; }
+.ww-best { font-family: var(--display); font-size: 14px; font-weight: 700; color: var(--info); }
+.ww-detail { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.ww-timeline { display: flex; gap: 3px; height: 28px; margin-bottom: 5px; }
+.ww-hour { flex: 1; border-radius: 3px; transition: opacity .2s; }
+.ww-hr-labels { display: flex; justify-content: space-between; }
+.ww-hr-lbl { font-family: var(--mono); font-size: 8px; color: var(--dim); }
+
+/* ── COMMUNITY FEED ── */
+.feed-item { padding: 12px 0; border-bottom: 1px solid var(--b); }
+.feed-item:last-child { border-bottom: none; }
+.feed-top { display: flex; align-items: flex-start; gap: 10px; }
+.feed-av { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; font-family: var(--display); }
+.feed-body { flex: 1; min-width: 0; }
+.feed-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
+.feed-user { font-size: 12px; font-weight: 600; font-family: var(--display); cursor: pointer; }
+.feed-user:hover { text-decoration: underline; }
+.feed-follow-btn { font-size: 9px; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--b2); background: none; color: var(--muted); cursor: pointer; font-family: var(--body); transition: all .15s; }
+.feed-follow-btn:hover, .feed-follow-btn.following { border-color: var(--info); color: var(--info); }
+.feed-follow-btn.following { background: rgba(96,165,250,.08); }
+.feed-time { font-family: var(--mono); font-size: 9px; color: var(--dim); }
+.feed-msg { font-size: 12px; color: var(--muted); line-height: 1.5; }
+.feed-actions { display: flex; gap: 8px; margin-top: 7px; }
+.feed-react { display: flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px; border: 1px solid var(--b); background: none; font-size: 11px; color: var(--muted); cursor: pointer; font-family: var(--body); transition: all .15s; }
+.feed-react:hover, .feed-react.reacted { border-color: var(--b2); background: var(--bg3); color: var(--text); }
+.feed-react .emoji { font-size: 12px; }
+.report-btn { width: 100%; margin-top: 12px; padding: 9px; background: var(--bg3); border: 1px solid var(--b2); border-radius: 10px; color: var(--muted); font-family: var(--body); font-size: 12px; cursor: pointer; transition: all .2s; }
+.report-btn:hover { border-color: var(--info); color: var(--info); }
+
+/* ── ACTIVITY LOG ── */
+.log-row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--b); }
+.log-row:last-child { border-bottom: none; }
+.log-dot-wrap { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+.log-dot { width: 7px; height: 7px; border-radius: 50%; }
+.log-text { flex: 1; font-size: 12px; color: var(--muted); line-height: 1.4; }
+.log-time { font-family: var(--mono); font-size: 10px; color: var(--dim); flex-shrink: 0; }
+
+/* ── REFRESH BAR ── */
+.refresh-bar { display: flex; align-items: center; gap: 12px; background: var(--bg2); border: 1px solid var(--b); border-radius: 10px; padding: 9px 16px; margin-bottom: 1.5rem; }
+.refresh-track { flex: 1; height: 2px; background: var(--dim); border-radius: 1px; }
+.refresh-fill { height: 100%; background: var(--info); border-radius: 1px; transition: width .3s linear; }
+
+/* ── GITHUB PANEL ── */
+.github-panel { background: var(--card); border: 1px solid var(--b); border-radius: var(--r); padding: 1.5rem; margin-bottom: 1.25rem; }
+.github-header { display: flex; align-items: center; gap: 12px; margin-bottom: 1rem; }
+.github-icon { width: 40px; height: 40px; border-radius: 10px; background: var(--bg3); display: flex; align-items: center; justify-content: center; font-size: 20px; }
+.github-title { font-family: var(--display); font-size: 16px; font-weight: 700; }
+.github-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.github-status { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--bg3); border: 1px solid var(--b2); border-radius: 10px; margin-bottom: 12px; }
+.github-status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.github-connect-btn { padding: 10px 20px; background: var(--text); border: none; border-radius: 10px; color: var(--bg); font-family: var(--display); font-size: 13px; font-weight: 700; cursor: pointer; transition: opacity .2s; }
+.github-connect-btn:hover { opacity: .88; }
+.github-commit-form { display: none; flex-direction: column; gap: 10px; }
+.commit-msg-input { width: 100%; padding: 10px 12px; background: var(--bg3); border: 1px solid var(--b2); border-radius: 10px; color: var(--text); font-family: var(--mono); font-size: 13px; outline: none; transition: border .2s; }
+.commit-msg-input:focus { border-color: var(--info); }
+.commit-btn { padding: 10px 20px; background: #238636; border: none; border-radius: 10px; color: #fff; font-family: var(--display); font-size: 13px; font-weight: 700; cursor: pointer; transition: opacity .2s; }
+.commit-btn:hover { opacity: .88; }
+.commit-history { margin-top: 12px; }
+.commit-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--b); font-size: 12px; }
+.commit-item:last-child { border-bottom: none; }
+.commit-sha { font-family: var(--mono); font-size: 10px; color: var(--info); }
+.commit-msg-text { flex: 1; color: var(--muted); }
+.commit-time { font-family: var(--mono); font-size: 10px; color: var(--dim); }
+.contribution-grid { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 12px; }
+.contrib-day { width: 12px; height: 12px; border-radius: 2px; }
+
+/* ── ADD AI PANEL ── */
+.add-ai-card { background: var(--card2); border: 1px dashed var(--b2); border-radius: var(--r); padding: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; cursor: pointer; min-height: 160px; transition: all .2s; }
+.add-ai-card:hover { border-color: var(--info); background: rgba(96,165,250,.04); }
+.add-ai-icon { font-size: 22px; color: var(--muted); }
+.add-ai-text { font-size: 12px; color: var(--muted); font-family: var(--display); font-weight: 600; }
+
+/* ── MODAL ── */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.75); display: none; align-items: center; justify-content: center; z-index: 500; }
+.modal-overlay.open { display: flex; }
+.modal-box { background: var(--card); border: 1px solid var(--b2); border-radius: 18px; padding: 1.75rem; width: 100%; max-width: 480px; margin: 1rem; }
+.modal-title { font-family: var(--display); font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+.modal-sub { font-size: 12px; color: var(--muted); margin-bottom: 1.25rem; }
+.modal-ai-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.m-chip { padding: 5px 13px; border-radius: 20px; border: 1px solid var(--b2); background: none; color: var(--muted); font-size: 11px; cursor: pointer; font-family: var(--body); transition: all .2s; }
+.m-chip:hover, .m-chip.sel { border-color: var(--info); color: var(--info); background: rgba(96,165,250,.08); }
+textarea.modal-input { width: 100%; padding: 11px 13px; background: var(--bg3); border: 1px solid var(--b2); border-radius: 10px; color: var(--text); font-family: var(--body); font-size: 13px; outline: none; resize: none; height: 80px; transition: border .2s; }
+textarea.modal-input:focus { border-color: var(--info); }
+.modal-btns { display: flex; gap: 8px; margin-top: 14px; }
+.modal-cancel { flex: 1; padding: 10px; border-radius: 10px; border: 1px solid var(--b2); background: none; color: var(--muted); cursor: pointer; font-family: var(--body); }
+.modal-submit { flex: 2; padding: 10px; border-radius: 10px; border: none; background: var(--info); color: #fff; font-family: var(--display); font-weight: 700; cursor: pointer; }
+
+/* ── ADD AI MODAL ── */
+.add-ai-fields { display: grid; gap: 10px; }
+
+/* ── RATE MODAL ── */
+.star-row { display: flex; gap: 8px; justify-content: center; margin: 1rem 0; }
+.rate-star { font-size: 28px; cursor: pointer; transition: transform .15s; filter: grayscale(1); }
+.rate-star:hover, .rate-star.lit { filter: none; transform: scale(1.15); }
+
+/* ── TOAST ── */
+.toast { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999; background: var(--card); border: 1px solid var(--b2); border-radius: 12px; padding: 14px 18px; max-width: 320px; transform: translateY(100px); opacity: 0; transition: all .3s cubic-bezier(.34,1.56,.64,1); pointer-events: none; }
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast-title { font-family: var(--display); font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+.toast-body { font-size: 12px; color: var(--muted); }
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<!-- ── AUTH ── -->
+<div id="auth-screen">
+  <div class="auth-box">
+    <div class="auth-logo">AIPulse<span class="pulse-dot"></span></div>
+    <div class="auth-sub">The live AI intelligence network &mdash; 9 platforms, one dashboard</div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login">Sign in</button>
+      <button class="auth-tab" id="tab-signup">Create account</button>
+    </div>
+    <div id="login-form">
+      <div class="field"><label>Email</label><input type="email" id="login-email" placeholder="you@example.com"></div>
+      <div class="field"><label>Password</label><input type="password" id="login-pass" placeholder="Password"></div>
+      <button class="btn-primary" id="btn-login">Sign in</button>
+    </div>
+    <div id="signup-form" style="display:none">
+      <div class="field"><label>Your name</label><input type="text" id="su-name" placeholder="Your name"></div>
+      <div class="field"><label>Email</label><input type="email" id="su-email" placeholder="you@example.com"></div>
+      <div class="field"><label>Password</label><input type="password" id="su-pass" placeholder="Min 6 characters"></div>
+      <button class="btn-primary" id="btn-signup">Create account</button>
+    </div>
+    <button class="btn-demo" id="btn-demo">&#9654; Try demo (no account needed)</button>
+    <div class="auth-err" id="auth-err"></div>
+  </div>
+</div>
+
+<!-- ── APP ── -->
+<div id="app">
+  <div class="topbar">
+    <div class="logo"><span class="logo-dot"></span>AIPulse</div>
+    <div class="topbar-center">
+      <button class="nav-tab active" data-page="dashboard">Dashboard</button>
+      <button class="nav-tab" data-page="github">GitHub</button>
+      <button class="nav-tab" data-page="community">Community</button>
+    </div>
+    <div class="topbar-right">
+      <div class="live-pill"><div class="live-pulse"></div>LIVE</div>
+      <div class="user-pill">
+        <div class="avatar" id="user-avatar">?</div>
+        <span class="user-name" id="user-name-display">User</span>
+      </div>
+      <button class="logout-btn" id="btn-logout">Sign out</button>
+    </div>
+  </div>
+
+  <!-- ══ DASHBOARD PAGE ══ -->
+  <div class="page active" id="page-dashboard">
+    <div class="main">
+      <div class="ticker-wrap">
+        <div class="ticker-tag">LIVE FEED</div>
+        <div style="overflow:hidden;flex:1;"><div class="ticker-scroll" id="ticker"></div></div>
+      </div>
+
+      <div class="winner-bar">
+        <div class="winner-crown">&#127942;</div>
+        <div class="winner-info">
+          <div class="winner-title" id="winner-title">Calculating fastest AI...</div>
+          <div class="winner-sub" id="winner-sub">Live latency measurement across 9 platforms</div>
+        </div>
+        <div class="winner-ms" id="winner-ms">--</div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-label">Total users</div><div class="stat-val" id="stat-total">--</div><div class="stat-sub">Across all 9 AIs</div></div>
+        <div class="stat-card"><div class="stat-label">Avg latency</div><div class="stat-val" id="stat-avg">--</div><div class="stat-sub">All platforms</div></div>
+        <div class="stat-card"><div class="stat-label">Incidents</div><div class="stat-val" id="stat-inc">0</div><div class="stat-sub">Detected today</div></div>
+        <div class="stat-card"><div class="stat-label">Watching</div><div class="stat-val" id="stat-watch" style="color:var(--info)">--</div><div class="stat-sub">Right now</div></div>
+        <div class="stat-card"><div class="stat-label">Reports</div><div class="stat-val" id="stat-reports">--</div><div class="stat-sub">Community today</div></div>
+      </div>
+
+      <div class="section-head">
+        <div class="section-title">Live AI status &mdash; 9 platforms</div>
+        <div class="section-meta" id="last-update">updating...</div>
+      </div>
+      <div class="ai-grid" id="ai-grid"></div>
+
+      <!-- Quality Scores -->
+      <div class="quality-card">
+        <div class="panel-title">
+          <span>&#11088; Community quality scores</span>
+          <span style="font-size:11px;font-weight:400;color:var(--muted);">Rate after your session</span>
+        </div>
+        <div class="quality-grid" id="quality-grid"></div>
+      </div>
+
+      <!-- Work Window -->
+      <div class="panel" style="margin-bottom:1.25rem;">
+        <div class="panel-title">&#9889; Smart work window &mdash; next 24h</div>
+        <div class="ww-rec">
+          <div class="ww-icon">&#127775;</div>
+          <div>
+            <div class="ww-best" id="ww-best">Calculating best time...</div>
+            <div class="ww-detail" id="ww-detail">Based on historical load patterns</div>
+          </div>
+        </div>
+        <div class="ww-timeline" id="ww-timeline"></div>
+        <div class="ww-hr-labels">
+          <span class="ww-hr-lbl">12am</span><span class="ww-hr-lbl">6am</span>
+          <span class="ww-hr-lbl">12pm</span><span class="ww-hr-lbl">6pm</span>
+          <span class="ww-hr-lbl">11pm</span>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="panel">
+          <div class="panel-title">
+            Latency history &mdash; 60 min
+            <div style="display:flex;gap:10px;" id="chart-legend"></div>
+          </div>
+          <div style="position:relative;height:200px;"><canvas id="latChart"></canvas></div>
+        </div>
+        <div class="panel">
+          <div class="panel-title">&#127942; Speed leaderboard</div>
+          <div id="leaderboard"></div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="panel">
+          <div class="panel-title">Peak hours heatmap</div>
+          <div class="hm-outer">
+            <div class="hm-days" id="hm-days"></div>
+            <div style="flex:1;">
+              <div class="hm-grid" id="heatmap"></div>
+              <div class="hm-hours"><span class="hm-hour">12am</span><span class="hm-hour">6am</span><span class="hm-hour">12pm</span><span class="hm-hour">6pm</span><span class="hm-hour">11pm</span></div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+            <span style="font-size:10px;color:var(--dim)">Fast</span>
+            <div style="flex:1;height:3px;background:linear-gradient(to right,#22d3a0,#fbbf24,#f87171);border-radius:2px;"></div>
+            <span style="font-size:10px;color:var(--dim)">Slow</span>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-title">Live activity log <span style="font-size:10px;font-weight:400;color:var(--muted);" id="log-count">0 events</span></div>
+          <div id="activity-log"></div>
+        </div>
+      </div>
+
+      <div class="refresh-bar">
+        <span style="font-family:var(--mono);font-size:11px;color:var(--muted);" id="refresh-label">Last updated just now</span>
+        <div class="refresh-track"><div class="refresh-fill" id="refresh-fill" style="width:0%"></div></div>
+        <span style="font-family:var(--mono);font-size:11px;color:var(--dim);" id="refresh-next">Next: 30s</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ GITHUB PAGE ══ -->
+  <div class="page" id="page-github">
+    <div class="main">
+      <div class="github-panel">
+        <div class="github-header">
+          <div class="github-icon">&#128025;</div>
+          <div>
+            <div class="github-title">GitHub Auto-Commit</div>
+            <div class="github-sub">Every time you open AIPulse, your GitHub contribution graph gets a commit automatically.</div>
+          </div>
+        </div>
+
+        <div class="github-status" id="gh-status-bar">
+          <div class="github-status-dot" style="background:var(--warn)" id="gh-status-dot"></div>
+          <span style="font-size:13px;" id="gh-status-text">Not connected &mdash; connect GitHub to enable auto-commits</span>
+        </div>
+
+        <!-- NOT CONNECTED STATE -->
+        <div id="gh-not-connected">
+          <div style="background:var(--bg3);border-radius:12px;padding:1.25rem;margin-bottom:1rem;">
+            <div style="font-family:var(--display);font-size:14px;font-weight:700;margin-bottom:8px;">How it works</div>
+            <div style="font-size:12px;color:var(--muted);line-height:1.8;">
+              1. Enter your GitHub username + a Personal Access Token (PAT)<br>
+              2. We create a repo called <span style="font-family:var(--mono);color:var(--info);">ai-pulse-activity</span> in your account<br>
+              3. Every dashboard visit = one real commit with your custom message<br>
+              4. Your contribution graph stays green &#128994; automatically<br><br>
+              <span style="color:var(--warn);">&#9888; Token needs <code style="font-family:var(--mono);">repo</code> scope. Create at github.com/settings/tokens</span>
+            </div>
+          </div>
+          <div style="display:grid;gap:10px;margin-bottom:12px;">
+            <div class="field" style="margin-bottom:0;"><label>GitHub Username</label><input type="text" id="gh-username" placeholder="your-github-username"></div>
+            <div class="field" style="margin-bottom:0;"><label>Personal Access Token (PAT)</label><input type="password" id="gh-token" placeholder="ghp_xxxxxxxxxxxx"></div>
+            <div class="field" style="margin-bottom:0;"><label>Custom commit message (default)</label><input type="text" id="gh-commit-msg" placeholder="Monitored AI performance — AIPulse session" value="Monitored AI performance — AIPulse session"></div>
+          </div>
+          <button class="github-connect-btn" id="gh-connect-btn">&#128279; Connect GitHub</button>
+        </div>
+
+        <!-- CONNECTED STATE -->
+        <div id="gh-connected" style="display:none;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;">
+            <div style="font-size:12px;color:var(--muted);">Connected as</div>
+            <div style="font-family:var(--mono);font-size:13px;color:var(--info);" id="gh-connected-user">-</div>
+            <button style="background:none;border:1px solid var(--b2);border-radius:6px;padding:3px 8px;color:var(--muted);font-size:11px;cursor:pointer;" id="gh-disconnect-btn">Disconnect</button>
+          </div>
+
+          <div style="background:var(--bg3);border-radius:12px;padding:1rem;margin-bottom:1rem;">
+            <div style="font-size:12px;color:var(--muted);margin-bottom:8px;font-family:var(--display);font-weight:600;">Edit commit message</div>
+            <div style="display:flex;gap:8px;">
+              <input type="text" id="gh-msg-edit" style="flex:1;padding:9px 12px;background:var(--card);border:1px solid var(--b2);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none;" placeholder="Your commit message">
+              <button id="gh-save-msg" style="padding:9px 16px;background:var(--info);border:none;border-radius:8px;color:#fff;font-family:var(--display);font-weight:700;font-size:12px;cursor:pointer;">Save</button>
+            </div>
+          </div>
+
+          <button class="commit-btn" id="gh-manual-commit" style="width:100%;margin-bottom:1rem;">&#128640; Commit now (manual)</button>
+
+          <div style="font-family:var(--display);font-size:13px;font-weight:700;margin-bottom:8px;">Recent auto-commits</div>
+          <div id="commit-history" class="commit-history"></div>
+
+          <div style="font-family:var(--display);font-size:13px;font-weight:700;margin-top:1rem;margin-bottom:8px;">Contribution preview (last 12 weeks)</div>
+          <div class="contribution-grid" id="contrib-grid"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ COMMUNITY PAGE ══ -->
+  <div class="page" id="page-community">
+    <div class="main">
+      <div class="three-col">
+        <div class="panel" style="grid-column: span 2;">
+          <div class="panel-title">
+            Community feed
+            <span style="font-size:10px;font-weight:400;color:var(--success);">&#9679; live via Firebase</span>
+          </div>
+          <div id="community-feed"></div>
+          <button class="report-btn" id="btn-report">+ Share your experience &mdash; goes live for everyone</button>
+        </div>
+        <div>
+          <div class="panel" style="margin-bottom:12px;">
+            <div class="panel-title">Following</div>
+            <div id="following-list" style="font-size:12px;color:var(--muted);">Follow users in the feed to see them here.</div>
+          </div>
+          <div class="panel">
+            <div class="panel-title">Top contributors</div>
+            <div id="top-contributors"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── REPORT MODAL ── -->
+<div class="modal-overlay" id="report-modal">
+  <div class="modal-box">
+    <div class="modal-title">Share your experience</div>
+    <div class="modal-sub">Your report goes live instantly for all users via Firebase.</div>
+    <div class="modal-ai-chips" id="report-chips"></div>
+    <textarea class="modal-input" id="report-input" placeholder="What are you experiencing? e.g. 'Claude is blazing fast for coding right now' or 'DeepSeek API seems slow'"></textarea>
+    <div class="modal-btns">
+      <button class="modal-cancel" id="report-cancel">Cancel</button>
+      <button class="modal-submit" id="report-submit">Post &mdash; live instantly</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── RATE MODAL ── -->
+<div class="modal-overlay" id="rate-modal">
+  <div class="modal-box" style="max-width:360px;text-align:center;">
+    <div class="modal-title" id="rate-modal-title">Rate ChatGPT</div>
+    <div class="modal-sub">How good was the quality in your last session?</div>
+    <div class="star-row" id="star-row">
+      <span class="rate-star" data-v="1">&#11088;</span>
+      <span class="rate-star" data-v="2">&#11088;</span>
+      <span class="rate-star" data-v="3">&#11088;</span>
+      <span class="rate-star" data-v="4">&#11088;</span>
+      <span class="rate-star" data-v="5">&#11088;</span>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-cancel" id="rate-cancel">Cancel</button>
+      <button class="modal-submit" id="rate-submit">Submit rating</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── ADD AI MODAL ── -->
+<div class="modal-overlay" id="add-ai-modal">
+  <div class="modal-box">
+    <div class="modal-title">Add a new AI platform</div>
+    <div class="modal-sub">Suggest a new AI to track. Community upvotes it in.</div>
+    <div class="add-ai-fields">
+      <div class="field" style="margin-bottom:0;"><label>AI name</label><input type="text" id="new-ai-name" placeholder="e.g. LLaMA, Cohere, Yi..."></div>
+      <div class="field" style="margin-bottom:0;"><label>Company / Maker</label><input type="text" id="new-ai-maker" placeholder="e.g. Meta, Cohere, 01.ai"></div>
+      <div class="field" style="margin-bottom:0;"><label>Website URL</label><input type="text" id="new-ai-url" placeholder="https://..."></div>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-cancel" id="add-ai-cancel">Cancel</button>
+      <button class="modal-submit" id="add-ai-submit">Suggest AI</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TOAST ── -->
+<div class="toast" id="toast">
+  <div class="toast-title" id="toast-title"></div>
+  <div class="toast-body" id="toast-body"></div>
+</div>
+
+<script type="module">
+import { initializeApp }   from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js';
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+         signOut, onAuthStateChanged, updateProfile }
+  from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
+import { getDatabase, ref, push, onValue, set, update,
+         increment, serverTimestamp, onDisconnect, remove, get }
+  from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js';
+
+// ── YOUR FIREBASE CONFIG ──
+const FB = {
+  apiKey:            "AIzaSyCEkQGmMb5u6NiMASd3an4BoX5BYI2EYZo",
+  authDomain:        "finacialdashboard-ff730.firebaseapp.com",
+  databaseURL:       "https://finacialdashboard-ff730-default-rtdb.firebaseio.com",
+  projectId:         "finacialdashboard-ff730",
+  storageBucket:     "finacialdashboard-ff730.firebasestorage.app",
+  messagingSenderId: "798530658376",
+  appId:             "1:798530658376:web:169fc2e879f2040e7ff87d"
+};
+const fbApp = initializeApp(FB);
+const auth  = getAuth(fbApp);
+const db    = getDatabase(fbApp);
+
+// ════════════════════════════════
+// 9 AI PLATFORMS
+// ════════════════════════════════
+const AIs = [
+  { id:'gpt',  name:'ChatGPT',   maker:'OpenAI',     color:'#22d3a0', baseMs:820,  share:38 },
+  { id:'gem',  name:'Gemini',    maker:'Google',     color:'#60a5fa', baseMs:650,  share:20 },
+  { id:'cla',  name:'Claude',    maker:'Anthropic',  color:'#a78bfa', baseMs:730,  share:15 },
+  { id:'grk',  name:'Grok',      maker:'xAI',        color:'#f87171', baseMs:890,  share:8  },
+  { id:'per',  name:'Perplexity',maker:'Perplexity', color:'#fb923c', baseMs:610,  share:5  },
+  { id:'cop',  name:'Copilot',   maker:'Microsoft',  color:'#38bdf8', baseMs:780,  share:7  },
+  { id:'dsp',  name:'DeepSeek',  maker:'DeepSeek',   color:'#4ade80', baseMs:950,  share:4  },
+  { id:'meta', name:'Meta AI',   maker:'Meta',       color:'#c084fc', baseMs:700,  share:2  },
+  { id:'mis',  name:'Mistral',   maker:'Mistral AI', color:'#fde047', baseMs:560,  share:1  }
+];
+
+// ════════════════════════════════
+// STATE
+// ════════════════════════════════
+let currentUser  = null;
+let latHistory   = {};
+let qualScores   = {};   // { id: { total, count } }
+let logEntries   = [];
+let feedReports  = [];
+let incidents    = 0;
+let reportCount  = 0;
+let following    = new Set();
+let watchRef     = null;
+let latChart     = null;
+let timerIv      = null;
+let secondsLeft  = 30;
+let toastTmo     = null;
+let rateTarget   = null;
+let rateVal      = 0;
+let ghConfig     = null;  // { username, token, msg, commits:[] }
+let customAIs    = [];
+
+AIs.forEach(a => {
+  latHistory[a.id] = Array.from({length:12}, () => Math.round(a.baseMs + (Math.random()-.5)*250));
+  qualScores[a.id] = { total: (3.8 + Math.random()*.8) * 20, count: Math.floor(Math.random()*40+10) };
+});
+
+// ════════════════════════════════
+// HELPERS
+// ════════════════════════════════
+const jit  = (b,r) => Math.max(150, Math.round(b + (Math.random()-.5)*r));
+const last = arr  => arr[arr.length-1];
+const esc  = s    => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const now  = ()   => new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+const ago  = ts   => { const d=Math.floor((Date.now()-ts)/1000); return d<60?d+'s':d<3600?Math.floor(d/60)+'m':Math.floor(d/3600)+'h'; };
+const allAIs = ()  => [...AIs, ...customAIs];
+const statusOf = ms => ms<700?['Fast','sf']:ms<1100?['Moderate','sm']:['Slow','ss'];
+const barColor = ms => ms<700?'var(--success)':ms<1100?'var(--warn)':'var(--danger)';
+const pct = (ms,max) => Math.round((1-ms/max)*100+10);
+
+// ════════════════════════════════
+// AUTH
+// ════════════════════════════════
+function msg(t,ok=false){ const e=document.getElementById('auth-err'); e.textContent=t; e.style.color=ok?'var(--success)':'var(--danger)'; }
+function switchTab(t){
+  ['login','signup'].forEach(x=>{ document.getElementById('tab-'+x).classList.toggle('active',x===t); document.getElementById(x+'-form').style.display=x===t?'':'none'; });
+  msg('');
+}
+async function doLogin(){
+  const email=document.getElementById('login-email').value.trim();
+  const pass=document.getElementById('login-pass').value;
+  if(!email||!pass){msg('Enter email and password.');return;}
+  msg('Signing in…',true);
+  try{ await signInWithEmailAndPassword(auth,email,pass); }
+  catch(e){ const m={'auth/invalid-credential':'Wrong email or password.','auth/too-many-requests':'Too many attempts.'}; msg(m[e.code]||e.message); }
+}
+async function doSignup(){
+  const name=document.getElementById('su-name').value.trim();
+  const email=document.getElementById('su-email').value.trim();
+  const pass=document.getElementById('su-pass').value;
+  if(!name||!email||!pass){msg('Fill all fields.');return;}
+  if(pass.length<6){msg('Password min 6 chars.');return;}
+  msg('Creating account…',true);
+  try{
+    const c=await createUserWithEmailAndPassword(auth,email,pass);
+    await updateProfile(c.user,{displayName:name});
+  }catch(e){ const m={'auth/email-already-in-use':'Email already used.','auth/weak-password':'Password too weak.'}; msg(m[e.code]||e.message); }
+}
+async function doLogout(){
+  stopTimer();
+  if(watchRef){try{await remove(watchRef);}catch(e){} watchRef=null;}
+  await signOut(auth);
+}
+function useDemoMode(){
+  currentUser={uid:'demo',displayName:'Demo User',email:'demo@aipulse.app',isDemo:true};
+  bootApp(currentUser);
+}
+
+// ════════════════════════════════
+// FIREBASE REALTIME
+// ════════════════════════════════
+function setupPresence(uid,name){
+  watchRef=ref(db,'aipulse/watching/'+uid);
+  set(watchRef,{name,ts:serverTimestamp()});
+  onDisconnect(watchRef).remove();
+  onValue(ref(db,'aipulse/watching'),snap=>{
+    const c=snap.exists()?Object.keys(snap.val()).length:1;
+    document.getElementById('stat-watch').textContent=c;
+  });
+}
+function setupFeed(){
+  onValue(ref(db,'aipulse/reports'),snap=>{
+    feedReports=[];
+    if(snap.exists()) snap.forEach(c=>feedReports.push({key:c.key,...c.val()}));
+    feedReports.sort((a,b)=>(b.ts||0)-(a.ts||0));
+    reportCount=feedReports.length;
+    document.getElementById('stat-reports').textContent=reportCount;
+    renderFeed(feedReports.slice(0,12));
+  });
+}
+async function submitReport(msg){
+  if(!msg.trim())return;
+  try{
+    await push(ref(db,'aipulse/reports'),{
+      user: currentUser.displayName||'Anonymous',
+      uid:  currentUser.uid||'demo',
+      msg:  msg.trim(),
+      ts:   Date.now(),
+      votes:0, fire:0, wave:0
+    });
+  }catch(e){console.error(e);}
+}
+async function doReact(key,field){
+  if(!key)return;
+  try{ await update(ref(db,'aipulse/reports/'+key),{[field]:increment(1)}); }catch(e){}
+}
+async function submitRating(aiId, stars){
+  qualScores[aiId].total += stars;
+  qualScores[aiId].count += 1;
+  try{ await push(ref(db,'aipulse/ratings'),{aiId,stars,uid:currentUser.uid||'demo',ts:Date.now()}); }catch(e){}
+  renderQualityGrid();
+  toast('Rating submitted!','Thanks for helping the community.','var(--success)');
+}
+
+// ════════════════════════════════
+// RENDERS
+// ════════════════════════════════
+function renderAIGrid(){
+  const all=allAIs();
+  let fastest=all[0],slowest=all[0];
+  all.forEach(a=>{
+    if(!latHistory[a.id]) latHistory[a.id]=[a.baseMs];
+    const ms=last(latHistory[a.id]);
+    if(ms<last(latHistory[fastest.id]||[fastest.baseMs])) fastest=a;
+    if(ms>last(latHistory[slowest.id]||[slowest.baseMs])) slowest=a;
+  });
+
+  let html='';
+  all.forEach(a=>{
+    const ms=last(latHistory[a.id]||[a.baseMs]);
+    const prev=latHistory[a.id]?.[latHistory[a.id].length-2]||ms;
+    const [sl,sc]=statusOf(ms);
+    const bc=barColor(ms);
+    const bw=Math.min(100,Math.round(ms/15));
+    const load=Math.min(99,Math.round(ms/16));
+    const users=((a.share/100)*(a.share>10?900:a.share>5?200:50)+(Math.random()-.5)*20).toFixed(0);
+    const d=ms-prev;
+    const p50=Math.round(ms*.85), p95=Math.round(ms*1.3), p99=Math.round(ms*1.7);
+    const isBest=a.id===fastest.id;
+
+    html+=`<div class="ai-card${isBest?' best':''}" style="--accent:${a.color};" data-rateid="${a.id}">
+      <div class="ai-card-head">
+        <div class="ai-id">
+          <div class="ai-icon" style="background:${a.color}18;color:${a.color};">${a.name[0]}</div>
+          <div class="ai-name-block">
+            <div class="ai-name">${esc(a.name)}${isBest?' &#127942;':''}</div>
+            <div class="ai-maker">${esc(a.maker)}</div>
+          </div>
+        </div>
+        <span class="s-badge ${sc}">${sl}</span>
+      </div>
+      <div class="ai-metrics">
+        <div class="ai-metric">
+          <div class="ai-metric-label">Users</div>
+          <div class="ai-metric-val" style="color:${a.color}">${users}M</div>
+        </div>
+        <div class="ai-metric">
+          <div class="ai-metric-label">Load</div>
+          <div class="ai-metric-val" style="color:${bc}">${load}%</div>
+        </div>
+      </div>
+      <div class="lat-track"><div class="lat-fill" style="width:${bw}%;background:${bc};"></div></div>
+      <div class="lat-nums"><span>${ms}ms</span><span style="color:${d>0?'var(--danger)':'var(--success)'}">${d>0?'+'+d:''+d}ms</span></div>
+      <div class="percentiles">
+        <span class="pct-pill">p50: ${p50}ms</span>
+        <span class="pct-pill">p95: ${p95}ms</span>
+        <span class="pct-pill">p99: ${p99}ms</span>
+      </div>
+    </div>`;
+  });
+  // Add AI card
+  html+=`<div class="add-ai-card" id="add-ai-trigger">
+    <div class="add-ai-icon">&#43;</div>
+    <div class="add-ai-text">Add AI platform</div>
+    <div style="font-size:11px;color:var(--dim);">Suggest a new one</div>
+  </div>`;
+  document.getElementById('ai-grid').innerHTML=html;
+
+  const bms=last(latHistory[fastest.id]);
+  const wms=last(latHistory[slowest.id]);
+  document.getElementById('winner-title').textContent=fastest.name+' is fastest right now';
+  document.getElementById('winner-sub').textContent=`${bms}ms avg · ${slowest.name} slowest at ${wms}ms · ${all.length} platforms tracked`;
+  document.getElementById('winner-ms').textContent=bms+'ms';
+  document.getElementById('winner-ms').style.color=fastest.color;
+}
+
+function renderQualityGrid(){
+  const all=allAIs();
+  document.getElementById('quality-grid').innerHTML=all.map(a=>{
+    const q=qualScores[a.id]||{total:20,count:5};
+    const score=(q.total/q.count).toFixed(1);
+    const full=Math.round(score);
+    const stars='&#11088;'.repeat(full)+'<span style="opacity:.3">&#11088;</span>'.repeat(5-full);
+    return `<div class="qc-item">
+      <div class="qc-ai" style="color:${a.color}">${esc(a.name)}</div>
+      <div class="qc-stars">${stars}</div>
+      <div class="qc-score" style="color:${a.color}">${score}</div>
+      <div class="qc-votes">${q.count} ratings</div>
+      <button class="rate-btn" data-rateid="${a.id}">Rate session</button>
+    </div>`;
+  }).join('');
+}
+
+function renderStats(){
+  const all=allAIs();
+  const allMs=all.map(a=>last(latHistory[a.id]||[a.baseMs]));
+  const avg=Math.round(allMs.reduce((s,v)=>s+v,0)/allMs.length);
+  const total=all.reduce((s,a)=>{
+    const u=(a.share/100)*(a.share>10?900:a.share>5?200:50);
+    return s+u;
+  },0);
+  document.getElementById('stat-total').textContent=Math.round(total)+'M';
+  document.getElementById('stat-avg').textContent=avg+'ms';
+  document.getElementById('stat-inc').textContent=incidents;
+}
+
+function renderLeaderboard(){
+  const all=allAIs();
+  const scores=all.map(a=>({name:a.name,color:a.color,ms:last(latHistory[a.id]||[a.baseMs])})).sort((a,b)=>a.ms-b.ms);
+  const mx=Math.max(...scores.map(s=>s.ms));
+  document.getElementById('leaderboard').innerHTML=scores.slice(0,6).map((s,i)=>`
+    <div class="lb-row">
+      <div class="lb-rank${i<3?' r'+(i+1):''}">${i<3?['#1','#2','#3'][i]:'#'+(i+1)}</div>
+      <div class="lb-name" style="color:${i===0?s.color:'var(--text)'}">${esc(s.name)}</div>
+      <div class="lb-bar-wrap"><div class="lb-bar-fill" style="width:${pct(s.ms,mx)}%;background:${s.color};"></div></div>
+      <div class="lb-val">${s.ms}ms</div>
+      ${i===0?`<div class="lb-streak">&#9889;</div>`:''}
+    </div>`).join('');
+}
+
+function renderWorkWindow(){
+  const h=new Date().getHours();
+  const lp=[90,85,75,65,55,45,35,30,55,75,85,90,95,90,85,80,75,70,75,80,85,88,90,88];
+  let bh=h,bl=lp[h];
+  for(let i=h;i<24;i++) if(lp[i]<bl){bl=lp[i];bh=i;}
+  document.getElementById('ww-timeline').innerHTML=lp.map((l,i)=>`
+    <div class="ww-hour" style="background:${l<50?'var(--success)':l<75?'var(--warn)':'var(--danger)'};opacity:${i===h?1:.5};${i===h?'outline:2px solid rgba(255,255,255,.4);outline-offset:1px;':''}" title="${i}:00 — ${l}% load"></div>`).join('');
+  document.getElementById('ww-best').textContent=(bh===h?'Right now is best!':'Best at '+bh+':00 today')+' — '+bl+'% load';
+  document.getElementById('ww-detail').textContent=(lp[h]<60?'Low':'High')+' traffic now · '+(bl<50?'Excellent':'Good')+' window for heavy AI tasks';
+}
+
+function renderHeatmap(){
+  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  let dh='',hm='';
+  days.forEach(d=>{
+    dh+=`<div class="hm-day">${d}</div>`;
+    for(let h=0;h<24;h++){
+      const base=(d==='Sat'||d==='Sun')?.3:(h>=9&&h<=17)?.8:(h>=18&&h<=22)?.6:.25;
+      const v=Math.min(1,base+(Math.random()-.5)*.3);
+      const r=Math.round(16+v*223),g=Math.round(185-v*150),b=Math.round(129-v*80);
+      hm+=`<div class="hm-cell" style="background:rgb(${r},${g},${b});" title="${d} ${h}:00"></div>`;
+    }
+  });
+  document.getElementById('hm-days').innerHTML=dh;
+  document.getElementById('heatmap').innerHTML=hm;
+}
+
+function renderTicker(){
+  const items=allAIs().map(a=>{
+    const ms=last(latHistory[a.id]||[a.baseMs]);
+    const pr=latHistory[a.id]?.[latHistory[a.id].length-2]||ms;
+    const d=ms-pr;
+    const cls=d>20?'t-dn':d<-20?'t-up':'t-neu';
+    const ar=d>20?'&#9650;':d<-20?'&#9660;':'&#8212;';
+    return `<span class="tick-item"><span style="color:${a.color}">${esc(a.name)}</span><span class="${cls}">${ar} ${ms}ms</span></span>`;
+  });
+  document.getElementById('ticker').innerHTML=items.concat(items).join('');
+}
+
+function renderFeed(reports){
+  const colors=['#22d3a0','#60a5fa','#a78bfa','#fbbf24','#f87171','#fb923c','#4ade80'];
+  const feed=document.getElementById('community-feed');
+  if(!reports||!reports.length){
+    feed.innerHTML='<div style="color:var(--dim);font-size:12px;text-align:center;padding:2rem;">No reports yet — be the first!</div>';
+    return;
+  }
+  feed.innerHTML=reports.map((r,i)=>{
+    const c=colors[i%colors.length];
+    const t=r.ts?ago(r.ts):r.time||'';
+    const isFollowing=following.has(r.uid||r.user);
+    const isMe=(currentUser&&(r.uid===currentUser.uid));
+    return `<div class="feed-item">
+      <div class="feed-top">
+        <div class="feed-av" style="background:${c}18;color:${c};">${esc((r.user||'?')[0].toUpperCase())}</div>
+        <div class="feed-body">
+          <div class="feed-meta">
+            <span class="feed-user" style="color:${c}">${esc(r.user||'Anonymous')}</span>
+            ${!isMe?`<button class="feed-follow-btn${isFollowing?' following':''}" onclick="window._toggleFollow('${esc(r.uid||r.user)}','${esc(r.user||'')}',this)">${isFollowing?'&#10003; Following':'+ Follow'}</button>`:''}
+            <span class="feed-time">${esc(t)}</span>
+          </div>
+          <div class="feed-msg">${esc(r.msg||'')}</div>
+          <div class="feed-actions">
+            <button class="feed-react" onclick="window._react('${esc(r.key||'')}','votes',this)"><span class="emoji">&#128077;</span> ${r.votes||0}</button>
+            <button class="feed-react" onclick="window._react('${esc(r.key||'')}','fire',this)"><span class="emoji">&#128293;</span> ${r.fire||0}</button>
+            <button class="feed-react" onclick="window._react('${esc(r.key||'')}','wave',this)"><span class="emoji">&#128075;</span> ${r.wave||0}</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderFollowing(){
+  const list=document.getElementById('following-list');
+  if(!following.size){ list.innerHTML='<div style="font-size:12px;color:var(--muted);">Follow users in the feed to see them here.</div>'; return; }
+  list.innerHTML=[...following].map(uid=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--b);">
+      <div style="width:24px;height:24px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:10px;font-family:var(--display);font-weight:700;">${uid[0].toUpperCase()}</div>
+      <span style="font-size:12px;flex:1;">${esc(uid)}</span>
+      <button style="font-size:9px;padding:2px 6px;border-radius:4px;border:1px solid var(--b2);background:none;color:var(--muted);cursor:pointer;" onclick="window._toggleFollow('${esc(uid)}','${esc(uid)}',this,true)">Unfollow</button>
+    </div>`).join('');
+}
+
+function renderTopContribs(){
+  const names=['alex_dev','priya_k','markus92','sarah_ml','dev_tools','ai_watcher'];
+  const colors=['#22d3a0','#60a5fa','#a78bfa','#fbbf24','#f87171','#fb923c'];
+  document.getElementById('top-contributors').innerHTML=names.map((n,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--b);">
+      <div style="width:26px;height:26px;border-radius:50%;background:${colors[i]}18;color:${colors[i]};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:var(--display);">${n[0].toUpperCase()}</div>
+      <span style="flex:1;font-size:12px;font-weight:500;">${n}</span>
+      <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">${Math.floor(Math.random()*50+5)} reports</span>
+    </div>`).join('');
+}
+
+function addLog(text,color){
+  logEntries.unshift({text,color:color||'var(--muted)',time:now()});
+  if(logEntries.length>40) logEntries.pop();
+  const el=document.getElementById('activity-log');
+  if(!el)return;
+  el.innerHTML=logEntries.slice(0,8).map(e=>`
+    <div class="log-row">
+      <div class="log-dot-wrap" style="background:${e.color}18;"><div class="log-dot" style="background:${e.color};"></div></div>
+      <div class="log-text">${e.text}</div>
+      <div class="log-time">${e.time}</div>
+    </div>`).join('');
+  document.getElementById('log-count').textContent=logEntries.length+' events';
+}
+
+// ════════════════════════════════
+// CHART
+// ════════════════════════════════
+function initChart(){
+  const labels=Array.from({length:12},(_,i)=>i===0?'now':(11-i)*5+'m').reverse();
+  const topAIs=allAIs().slice(0,5); // top 5 for readability
+  latChart=new Chart(document.getElementById('latChart').getContext('2d'),{
+    type:'line',
+    data:{labels,datasets:topAIs.map(a=>({label:a.name,data:(latHistory[a.id]||[]).slice(),borderColor:a.color,backgroundColor:a.color+'10',tension:.4,pointRadius:1.5,borderWidth:1.5,fill:false}))},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{
+      x:{ticks:{font:{size:8},color:'#3a3a55'},grid:{color:'rgba(255,255,255,.03)'}},
+      y:{min:100,max:1600,ticks:{font:{size:8},color:'#3a3a55',callback:v=>v+'ms'},grid:{color:'rgba(255,255,255,.03)'}}
+    },animation:{duration:500}}
+  });
+  document.getElementById('chart-legend').innerHTML=topAIs.map(a=>`
+    <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--muted);">
+      <div style="width:7px;height:7px;border-radius:2px;background:${a.color};flex-shrink:0;"></div>${esc(a.name)}
+    </div>`).join('');
+}
+
+function updateChart(){
+  if(!latChart)return;
+  allAIs().slice(0,5).forEach((a,i)=>{ if(latChart.data.datasets[i]) latChart.data.datasets[i].data=(latHistory[a.id]||[]).slice(); });
+  latChart.update();
+}
+
+// ════════════════════════════════
+// REFRESH
+// ════════════════════════════════
+function refresh(){
+  allAIs().forEach(a=>{
+    if(!latHistory[a.id]) latHistory[a.id]=[a.baseMs];
+    const prev=last(latHistory[a.id]);
+    const ms=jit(a.baseMs,350);
+    latHistory[a.id].push(ms); latHistory[a.id].shift();
+    if(ms>1300&&prev<=1300){ incidents++; addLog(`<b>${a.name}</b> spiked to ${ms}ms — congestion detected`,'var(--danger)'); toast(a.name+' slowdown!','Response: '+ms+'ms','var(--danger)'); }
+    else if(ms<500&&prev>=500){ addLog(`<b>${a.name}</b> speed excellent at ${ms}ms`,'var(--success)'); }
+  });
+  renderAIGrid(); renderStats(); renderLeaderboard(); renderTicker(); updateChart();
+  const t=now();
+  document.getElementById('last-update').textContent='Updated '+t;
+  document.getElementById('refresh-label').textContent='Last updated '+t;
+
+  // Auto GitHub commit on refresh if connected
+  if(ghConfig&&ghConfig.autoCommit){
+    ghAutoCommit('auto: '+ghConfig.msg+' [session refresh]');
+  }
+}
+
+function stopTimer(){ if(timerIv){clearInterval(timerIv);timerIv=null;} }
+function startTimer(){
+  stopTimer(); secondsLeft=30;
+  timerIv=setInterval(()=>{
+    secondsLeft--;
+    document.getElementById('refresh-fill').style.width=Math.round(((30-secondsLeft)/30)*100)+'%';
+    document.getElementById('refresh-next').textContent='Next: '+secondsLeft+'s';
+    if(secondsLeft<=0){ refresh(); secondsLeft=30; }
+  },1000);
+}
+
+// ════════════════════════════════
+// TOAST
+// ════════════════════════════════
+function toast(title,body,color){
+  document.getElementById('toast-title').textContent=title;
+  document.getElementById('toast-title').style.color=color||'var(--text)';
+  document.getElementById('toast-body').textContent=body;
+  const t=document.getElementById('toast');
+  t.classList.add('show');
+  clearTimeout(toastTmo);
+  toastTmo=setTimeout(()=>t.classList.remove('show'),4500);
+}
+
+// ════════════════════════════════
+// MODALS
+// ════════════════════════════════
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+window.openModal  = openModal;
+window.closeModal = closeModal;
+
+// ════════════════════════════════
+// GITHUB AUTO-COMMIT
+// ════════════════════════════════
+function saveGH(){ localStorage.setItem('aipulse_gh', JSON.stringify(ghConfig)); }
+function loadGH(){ try{ ghConfig=JSON.parse(localStorage.getItem('aipulse_gh')||'null'); }catch(e){ghConfig=null;} }
+
+async function ghAutoCommit(message){
+  if(!ghConfig||!ghConfig.token||!ghConfig.username)return;
+  const {username,token}=ghConfig;
+  const repo='ai-pulse-activity';
+  const headers={ 'Authorization':'token '+token, 'Content-Type':'application/json', 'Accept':'application/vnd.github.v3+json' };
+
+  try {
+    // ensure repo exists
+    const repoCheck=await fetch(`https://api.github.com/repos/${username}/${repo}`,{headers});
+    if(!repoCheck.ok){
+      await fetch(`https://api.github.com/user/repos`,{method:'POST',headers,body:JSON.stringify({name:repo,description:'AIPulse daily AI monitoring activity',auto_init:true,private:false})});
+      await new Promise(r=>setTimeout(r,1500));
+    }
+
+    // get current file SHA if exists
+    const date=new Date().toISOString().split('T')[0];
+    const filePath=`activity/${date}.json`;
+    let sha='';
+    const fileRes=await fetch(`https://api.github.com/repos/${username}/${repo}/contents/${filePath}`,{headers});
+    if(fileRes.ok){ const fd=await fileRes.json(); sha=fd.sha; }
+
+    // build content
+    const content={date,message,ais:allAIs().map(a=>({id:a.id,name:a.name,ms:last(latHistory[a.id]||[a.baseMs])})),ts:Date.now()};
+    const encoded=btoa(unescape(encodeURIComponent(JSON.stringify(content,null,2))));
+
+    const body={message,content:encoded};
+    if(sha)body.sha=sha;
+
+    const commitRes=await fetch(`https://api.github.com/repos/${username}/${repo}/contents/${filePath}`,{method:'PUT',headers,body:JSON.stringify(body)});
+    if(commitRes.ok){
+      const cd=await commitRes.json();
+      const commitSha=cd.commit.sha.slice(0,7);
+      if(!ghConfig.commits)ghConfig.commits=[];
+      ghConfig.commits.unshift({sha:commitSha,msg:message,time:now(),date});
+      if(ghConfig.commits.length>20)ghConfig.commits.pop();
+      saveGH();
+      renderCommitHistory();
+      renderContribGrid();
+      addLog(`GitHub auto-commit pushed: <b>${commitSha}</b>`,'#4ade80');
+      return true;
+    }
+  } catch(e){ console.error('GH commit failed:',e); }
+  return false;
+}
+
+function renderCommitHistory(){
+  if(!ghConfig||!ghConfig.commits||!ghConfig.commits.length){
+    document.getElementById('commit-history').innerHTML='<div style="font-size:12px;color:var(--muted);">No commits yet. Open the dashboard once more or click "Commit now".</div>';
+    return;
+  }
+  document.getElementById('commit-history').innerHTML=ghConfig.commits.slice(0,8).map(c=>`
+    <div class="commit-item">
+      <span class="commit-sha">${c.sha}</span>
+      <span class="commit-msg-text">${esc(c.msg)}</span>
+      <span class="commit-time">${c.time||c.date}</span>
+    </div>`).join('');
+}
+
+function renderContribGrid(){
+  const grid=document.getElementById('contrib-grid');
+  if(!grid)return;
+  const commitDates=new Set((ghConfig?.commits||[]).map(c=>c.date));
+  const days=84; // 12 weeks
+  let html='';
+  for(let i=days;i>=0;i--){
+    const d=new Date(); d.setDate(d.getDate()-i);
+    const ds=d.toISOString().split('T')[0];
+    const active=commitDates.has(ds);
+    const isWeekend=d.getDay()===0||d.getDay()===6;
+    html+=`<div class="contrib-day" style="background:${active?'#238636':isWeekend?'#161b22':'#0d1117'};" title="${ds}${active?' — committed':''}"></div>`;
+  }
+  grid.innerHTML=html;
+}
+
+function renderGHConnected(){
+  document.getElementById('gh-not-connected').style.display='none';
+  document.getElementById('gh-connected').style.display='block';
+  document.getElementById('gh-status-dot').style.background='var(--success)';
+  document.getElementById('gh-status-text').textContent='Connected as '+ghConfig.username+' — auto-commits active';
+  document.getElementById('gh-connected-user').textContent='@'+ghConfig.username;
+  document.getElementById('gh-msg-edit').value=ghConfig.msg||'Monitored AI performance — AIPulse session';
+  renderCommitHistory();
+  renderContribGrid();
+}
+
+// ════════════════════════════════
+// REPORT MODAL CHIPS
+// ════════════════════════════════
+function buildReportChips(){
+  document.getElementById('report-chips').innerHTML=allAIs().map(a=>`
+    <button class="m-chip" data-ai="${esc(a.name)}">${esc(a.name)}</button>`).join('');
+  document.querySelectorAll('#report-chips .m-chip').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      btn.classList.toggle('sel');
+      const inp=document.getElementById('report-input');
+      inp.value=btn.dataset.ai+' '+inp.value.replace(/^[\w]+ /,'');
+      inp.focus();
+    });
+  });
+}
+
+// ════════════════════════════════
+// GLOBAL HANDLERS (called from HTML)
+// ════════════════════════════════
+window._openRate = (id)=>{
+  const a=allAIs().find(x=>x.id===id);
+  if(!a)return;
+  rateTarget=id; rateVal=0;
+  document.getElementById('rate-modal-title').textContent='Rate '+a.name+' quality';
+  document.querySelectorAll('.rate-star').forEach(s=>s.classList.remove('lit'));
+  openModal('rate-modal');
+};
+window._react = (key,field,btn)=>{
+  btn.classList.add('reacted');
+  doReact(key,field);
+  const cnt=parseInt(btn.textContent.replace(/\D/g,''))||0;
+  btn.innerHTML=btn.innerHTML.replace(/\d+/,cnt+1);
+};
+window._toggleFollow = (uid,name,btn,forceUnfollow=false)=>{
+  if(following.has(uid)||forceUnfollow){
+    following.delete(uid);
+    if(btn){btn.textContent='+ Follow';btn.classList.remove('following');}
+    toast('Unfollowed '+name,'','var(--muted)');
+  } else {
+    following.add(uid);
+    if(btn){btn.textContent='✓ Following';btn.classList.add('following');}
+    toast('Following '+name,'You\'ll see their reports first.','var(--info)');
+  }
+  renderFollowing();
+};
+
+// ════════════════════════════════
+// PAGE NAV
+// ════════════════════════════════
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.querySelector(`[data-page="${id}"]`).classList.add('active');
+  if(id==='community') renderFeed(feedReports.slice(0,12));
+}
+
+// ════════════════════════════════
+// BOOT
+// ════════════════════════════════
+function bootApp(user){
+  currentUser=user;
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('app').style.display='block';
+
+  const name=user.displayName||user.email.split('@')[0];
+  const ini=name.split(' ').map(w=>w[0]||'').join('').toUpperCase().slice(0,2)||'?';
+  document.getElementById('user-avatar').textContent=ini;
+  document.getElementById('user-name-display').textContent=name.split(' ')[0];
+
+  if(!user.isDemo){
+    setupPresence(user.uid,name);
+    setupFeed();
+  } else {
+    document.getElementById('stat-watch').textContent=Math.floor(Math.random()*80+120);
+    document.getElementById('stat-reports').textContent='0';
+    feedReports=[
+      {key:'s1',user:'dev_tools',uid:'u1',msg:'ChatGPT blazing fast tonight!',ts:Date.now()-120000,votes:12,fire:5,wave:2},
+      {key:'s2',user:'ai_watcher',uid:'u2',msg:'Gemini Advanced slow for me rn',ts:Date.now()-300000,votes:7,fire:1,wave:0},
+      {key:'s3',user:'priya_k',uid:'u3',msg:'Mistral is surprisingly fast for code',ts:Date.now()-600000,votes:19,fire:8,wave:3},
+      {key:'s4',user:'markus92',uid:'u4',msg:'DeepSeek outperforming Claude on math tasks today',ts:Date.now()-900000,votes:14,fire:6,wave:1}
+    ];
+    renderFeed(feedReports);
+  }
+
+  loadGH();
+  if(ghConfig&&ghConfig.username&&ghConfig.token){
+    renderGHConnected();
+    ghAutoCommit(ghConfig.msg||'Monitored AI performance — AIPulse session');
+  }
+
+  addLog(`<b>${esc(name)}</b> signed in — monitoring ${allAIs().length} AI platforms`,'var(--info)');
+  addLog('Firebase live — community data shared globally','var(--success)');
+
+  renderAIGrid(); renderQualityGrid(); renderStats();
+  renderLeaderboard(); renderWorkWindow(); renderHeatmap(); renderTicker();
+  buildReportChips(); renderTopContribs(); renderFollowing();
+  initChart(); startTimer();
+  toast('Welcome back, '+name.split(' ')[0]+'!',allAIs().length+' AIs monitored · Firebase live','var(--info)');
+}
+
+// ════════════════════════════════
+// WIRE UP
+// ════════════════════════════════
+document.getElementById('tab-login').onclick  = ()=>switchTab('login');
+document.getElementById('tab-signup').onclick = ()=>switchTab('signup');
+document.getElementById('btn-login').onclick  = doLogin;
+document.getElementById('btn-signup').onclick = doSignup;
+document.getElementById('btn-logout').onclick = doLogout;
+document.getElementById('btn-demo').onclick   = useDemoMode;
+
+document.querySelectorAll('.nav-tab').forEach(t=>t.addEventListener('click',()=>showPage(t.dataset.page)));
+
+document.getElementById('btn-report').onclick = ()=>{ buildReportChips(); openModal('report-modal'); };
+document.getElementById('report-cancel').onclick = ()=>closeModal('report-modal');
+document.getElementById('report-submit').onclick = async()=>{
+  const msg=document.getElementById('report-input').value.trim();
+  if(!msg)return;
+  closeModal('report-modal');
+  document.getElementById('report-input').value='';
+  await submitReport(msg);
+  addLog(`<b>${esc(currentUser?.displayName||'You')}</b> posted: "${esc(msg)}"`,'var(--a78bfa)');
+  toast('Posted!','Your report is live for all users.','var(--success)');
+};
+
+document.getElementById('rate-cancel').onclick=()=>closeModal('rate-modal');
+document.querySelectorAll('.rate-star').forEach(s=>{
+  s.onclick=()=>{ rateVal=parseInt(s.dataset.v); document.querySelectorAll('.rate-star').forEach(x=>x.classList.toggle('lit',parseInt(x.dataset.v)<=rateVal)); };
+});
+document.getElementById('rate-submit').onclick=()=>{
+  if(!rateVal||!rateTarget){closeModal('rate-modal');return;}
+  submitRating(rateTarget,rateVal);
+  closeModal('rate-modal');
+};
+
+document.getElementById('add-ai-cancel').onclick=()=>closeModal('add-ai-modal');
+document.getElementById('add-ai-submit').onclick=()=>{
+  const name=(document.getElementById('new-ai-name').value||'').trim();
+  const maker=(document.getElementById('new-ai-maker').value||'').trim();
+  if(!name||!maker){return;}
+  const id='custom_'+name.toLowerCase().replace(/\s+/g,'_');
+  const colors=['#f472b6','#fb7185','#c084fc','#34d399','#fbbf24'];
+  customAIs.push({id,name,maker,color:colors[customAIs.length%colors.length],baseMs:700+Math.random()*400,share:.5});
+  latHistory[id]=Array.from({length:12},()=>Math.round(700+(Math.random()-.5)*300));
+  qualScores[id]={total:15,count:4};
+  closeModal('add-ai-modal');
+  renderAIGrid(); renderQualityGrid(); buildReportChips();
+  toast(name+' added!','Now tracking '+allAIs().length+' AI platforms.','var(--success)');
+  addLog(`<b>${esc(name)}</b> added to monitoring by ${esc(currentUser?.displayName||'user')}`, '#f472b6');
+};
+
+// GitHub
+document.getElementById('gh-connect-btn').onclick=async()=>{
+  const u=(document.getElementById('gh-username').value||'').trim();
+  const t=(document.getElementById('gh-token').value||'').trim();
+  const m=(document.getElementById('gh-commit-msg').value||'').trim()||'Monitored AI performance — AIPulse session';
+  if(!u||!t){toast('Missing info','Enter GitHub username and token.','var(--danger)');return;}
+  document.getElementById('gh-connect-btn').textContent='Connecting…';
+  try{
+    const r=await fetch('https://api.github.com/user',{headers:{'Authorization':'token '+t}});
+    if(!r.ok){toast('Auth failed','Invalid token or username.','var(--danger)');document.getElementById('gh-connect-btn').textContent='&#128279; Connect GitHub';return;}
+    ghConfig={username:u,token:t,msg:m,commits:[],autoCommit:true};
+    saveGH(); renderGHConnected();
+    const ok=await ghAutoCommit(m);
+    toast('GitHub connected!',ok?'First commit pushed to ai-pulse-activity!':'Connected — commit on next refresh.','#4ade80');
+  }catch(e){toast('Error',e.message,'var(--danger)');}
+  document.getElementById('gh-connect-btn').textContent='&#128279; Connect GitHub';
+};
+document.getElementById('gh-disconnect-btn').onclick=()=>{
+  ghConfig=null; saveGH();
+  document.getElementById('gh-connected').style.display='none';
+  document.getElementById('gh-not-connected').style.display='block';
+  document.getElementById('gh-status-dot').style.background='var(--warn)';
+  document.getElementById('gh-status-text').textContent='Not connected';
+  toast('Disconnected','GitHub auto-commit disabled.','var(--muted)');
+};
+document.getElementById('gh-save-msg').onclick=()=>{
+  if(!ghConfig)return;
+  ghConfig.msg=document.getElementById('gh-msg-edit').value||'Monitored AI performance — AIPulse session';
+  saveGH(); toast('Saved!','Commit message updated.','var(--success)');
+};
+document.getElementById('gh-manual-commit').onclick=async()=>{
+  if(!ghConfig)return;
+  document.getElementById('gh-manual-commit').textContent='Committing…';
+  const ok=await ghAutoCommit(ghConfig.msg||'Monitored AI performance — AIPulse session');
+  document.getElementById('gh-manual-commit').textContent='&#128640; Commit now (manual)';
+  toast(ok?'Committed!':'Failed',ok?'Pushed to GitHub successfully.':'Check token permissions.', ok?'#4ade80':'var(--danger)');
+};
+
+// Modal close on backdrop
+['report-modal','rate-modal','add-ai-modal'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',e=>{ if(e.target.id===id) closeModal(id); });
+});
+
+// Enter keys
+['login-email','login-pass'].forEach(id=>document.getElementById(id).addEventListener('keydown',e=>{ if(e.key==='Enter')doLogin(); }));
+['su-name','su-email','su-pass'].forEach(id=>document.getElementById(id).addEventListener('keydown',e=>{ if(e.key==='Enter')doSignup(); }));
+
+// ── EVENT DELEGATION for dynamically rendered elements ──
+document.addEventListener('click', e => {
+  // Rate btn in quality grid
+  const rateBtn = e.target.closest('.rate-btn[data-rateid]');
+  if (rateBtn) { window._openRate(rateBtn.dataset.rateid); return; }
+  // AI card click → open rate modal (but not if clicking a child button)
+  if (!e.target.closest('button')) {
+    const card = e.target.closest('.ai-card[data-rateid]');
+    if (card) { window._openRate(card.dataset.rateid); return; }
+  }
+  // Add AI trigger
+  if (e.target.closest('#add-ai-trigger')) { openModal('add-ai-modal'); return; }
+});
+
+// ── AUTH STATE ──
+onAuthStateChanged(auth, user=>{
+  if(user){ bootApp(user); }
+  else {
+    stopTimer();
+    if(watchRef){try{remove(watchRef);}catch(e){}watchRef=null;}
+    document.getElementById('auth-screen').style.display='flex';
+    document.getElementById('app').style.display='none';
+    currentUser=null;
+  }
+});
+</script>
+</body>
+</html>
